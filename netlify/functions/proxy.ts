@@ -21,6 +21,7 @@ const CORS_HEADERS: Record<string, string> = {
 
 export default async (request: Request, context: Context) => {
 
+  // OPTIONS 请求处理
   if (request.method === "OPTIONS") {
     return new Response(null, {
       headers: CORS_HEADERS,
@@ -28,7 +29,9 @@ export default async (request: Request, context: Context) => {
   }
 
   const { pathname, searchParams } = new URL(request.url);
-  if(pathname === "/") {
+
+  // 如果是根路径，返回HTML首页
+  if (pathname === "/") {
     let blank_html = `
 <!DOCTYPE html>
 <html>
@@ -56,32 +59,44 @@ export default async (request: Request, context: Context) => {
     });
   }
 
+  // 生成目标API的URL
   const url = new URL(pathname, "https://generativelanguage.googleapis.com");
   searchParams.delete("_path");
 
+  // 将查询参数附加到目标 URL
   searchParams.forEach((value, key) => {
     url.searchParams.append(key, value);
   });
 
+  // 提取请求头
   const headers = pickHeaders(request.headers, ["content-type", "x-goog-api-client", "x-goog-api-key", "accept-encoding"]);
 
+  // 调试：打印请求头
+  console.log('Request Headers:', JSON.stringify(Object.fromEntries(headers)));
+
+  // 调试：打印请求体
+  const requestBody = await request.text();
+  console.log('Request Body:', requestBody);
+
+  // 转发请求到目标API
   const response = await fetch(url, {
-    body: request.body,
+    body: requestBody,
     method: request.method,
     headers,
   });
 
-  // Create a new Headers object and copy all headers from response
+  // 创建新的响应头对象并复制响应头
   const responseHeaders = new Headers(response.headers);
 
-  // Add CORS headers
+  // 添加CORS头部
   Object.entries(CORS_HEADERS).forEach(([key, value]) => {
     responseHeaders.set(key, value);
   });
 
-  // Remove 'content-encoding' header if necessary
+  // 移除 'content-encoding' 头部（如果必要）
   responseHeaders.delete("content-encoding");
 
+  // 返回响应
   return new Response(response.body, {
     headers: responseHeaders,
     status: response.status
