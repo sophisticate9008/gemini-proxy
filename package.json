@@ -1,9 +1,12 @@
 {
-    "name": "genimi-proxy",
-    "version": "1.0.0",
-    "scripts": {},
+    "private": true,
+    "scripts": {
+      "prepare": "nitropack prepare",
+      "dev": "nitropack dev",
+      "build": "nitropack build",
+      "preview": "node .output/server/index.mjs"
+    },
     "dependencies": {
-        "@netlify/edge-functions": "^2.11.1",
-        "genimi-proxy": "file:"
+      "nitropack": "latest"
     }
-}
+  }
