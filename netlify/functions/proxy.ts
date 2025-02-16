@@ -70,22 +70,35 @@ export default async (request: Request, context: Context) => {
   // 选取要传递给目标 API 的 headers
   const headers = pickHeaders(request.headers, ["content-type", "x-goog-api-client", "x-goog-api-key", "accept-encoding"]);
 
-  // 使用 fetch 进行转发请求
-  const response = await fetch(url, {
-    body: request.body,
-    method: request.method,
-    headers,
-  });
+  try {
+    // 使用 fetch 进行转发请求
+    const response = await fetch(url, {
+      body: request.body,
+      method: request.method,
+      headers,
+    });
 
-  // 清理响应头，移除 content-encoding
-  const responseHeaders = {
-    ...CORS_HEADERS,
-    ...Object.fromEntries(response.headers),
-  };
+    // 确保响应体不为空，并返回合适的响应类型
+    const contentType = response.headers.get("Content-Type");
+    const responseBody = contentType && contentType.includes("application/json")
+      ? await response.json()  // 处理 JSON 响应
+      : await response.text(); // 如果是非 JSON 响应，处理为文本
 
-  // 返回响应
-  return new Response(response.body, {
-    headers: responseHeaders,
-    status: response.status,
-  });
+    const responseHeaders = {
+      ...CORS_HEADERS,
+      ...Object.fromEntries(response.headers),
+    };
+
+    return new Response(JSON.stringify(responseBody), {
+      headers: responseHeaders,
+      status: response.status,
+    });
+
+  } catch (error) {
+    // 错误处理
+    return new Response(JSON.stringify({ error: "Failed to fetch the URL" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 };
