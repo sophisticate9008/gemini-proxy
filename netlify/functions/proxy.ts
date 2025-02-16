@@ -1,25 +1,32 @@
 // netlify/functions/proxy.ts
-import { Context } from '@netlify/edge-functions';
 
-const PROXY_URL = 'https://generativelanguage.googleapis.com';
 
-export default async (event: Request, context: Context) => {
-  const url = new URL(event.url);
-  const targetUrl = PROXY_URL + url.pathname + url.search;
+const TARGET = "https://generativelanguage.googleapis.com";
 
-  try {
-    const response = await fetch(targetUrl, {
-      method: event.method,
-      headers: event.headers,
-      body: event.method === 'GET' ? undefined : await event.text(), // 如果是GET请求，不传递body
-    });
+export default async function handler(request: Request) {
+  // 构建目标URL
+  const url = new URL(request.url);
+  const targetUrl = new URL(url.pathname + url.search, TARGET);
 
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-    });
-  } catch (error) {
-    return new Response('Error proxying the request', { status: 500 });
-  }
+  // 透传请求
+  const response = await fetch(targetUrl.toString(), {
+    method: request.method,
+    headers: new Headers({
+      ...Object.fromEntries(request.headers),
+      Host: targetUrl.hostname  // 关键：强制设置目标Host头
+    }),
+    body: request.body,
+    redirect: "follow"
+  });
+
+  // 透传响应
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers
+  });
+}
+
+export const config = {
+  path: "/*"
 };

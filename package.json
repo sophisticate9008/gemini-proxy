@@ -4,8 +4,5 @@
     "scripts": {},
     "dependencies": {
         "genimi-proxy": "file:"
-    },
-    "devDependencies": {
-        "@netlify/edge-functions": "2.11.1"
     }
 }
