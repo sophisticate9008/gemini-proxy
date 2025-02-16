@@ -1,32 +1,26 @@
 // netlify/functions/proxy.ts
 
-
 const TARGET = "https://generativelanguage.googleapis.com";
 
 export default async function handler(request: Request) {
-  // 构建目标URL
-  const url = new URL(request.url);
-  const targetUrl = new URL(url.pathname + url.search, TARGET);
+  // 重建完整目标路径
+  const targetUrl = new URL(request.url);
+  targetUrl.hostname = new URL(TARGET).hostname;
+  targetUrl.protocol = "https:";
 
-  // 透传请求
-  const response = await fetch(targetUrl.toString(), {
+  // 透传请求（保留所有原始headers）
+  const response = await fetch(targetUrl, {
     method: request.method,
-    headers: new Headers({
-      ...Object.fromEntries(request.headers),
-      Host: targetUrl.hostname  // 关键：强制设置目标Host头
-    }),
+    headers: request.headers,
     body: request.body,
     redirect: "follow"
   });
 
-  // 透传响应
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: response.headers
-  });
+  // 透传响应（完全原样返回）
+  return response;
 }
 
 export const config = {
-  path: "/*"
+  path: "/*",
+  excludedPattern: "^/_next/.*"  // 排除Next.js相关路径（如有需要）
 };
