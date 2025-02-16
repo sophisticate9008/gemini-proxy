@@ -1,15 +1,16 @@
 [build]
   functions = "netlify/functions"
-  publish = "." 
+  publish = "dist"
+
 [[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/proxy"
+  from = "/api/*"
+  to = "https://generativelanguage.googleapis.com/:splat"
   status = 200
   force = true
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "*"
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+[functions]
+  node_bundler = "esbuild"
+  directory = "netlify/functions"
+
+[context.production.environment]
+  NODE_ENV = "production"
