@@ -15,11 +15,12 @@ const pickHeaders = (headers: Headers, keys: (string | RegExp)[]): Headers => {
 
 const CORS_HEADERS: Record<string, string> = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, OPTIONS, PUT, DELETE", // Specifying allowed methods
+  "access-control-allow-methods": "*",
   "access-control-allow-headers": "*",
 };
 
 export default async (request: Request, context: Context) => {
+
   if (request.method === "OPTIONS") {
     return new Response(null, {
       headers: CORS_HEADERS,
@@ -27,8 +28,9 @@ export default async (request: Request, context: Context) => {
   }
 
   const { pathname, searchParams } = new URL(request.url);
-  if (pathname === "/") {
-    let blank_html = `<!DOCTYPE html>
+  if(pathname === "/") {
+    let blank_html = `
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -36,15 +38,16 @@ export default async (request: Request, context: Context) => {
 </head>
 <body>
   <h1 id="google-palm-api-proxy-on-netlify-edge">Google PaLM API proxy on Netlify Edge</h1>
-  <p>Tips: This project uses a reverse proxy to solve problems such as location restrictions in Google APIs.</p>
+  <p>Tips: This project uses a reverse proxy to solve problems such as location restrictions in Google APIs. </p>
   <p>If you have any of the following requirements, you may need the support of this project.</p>
   <ol>
-  <li>When you see the error message "User location is not supported for the API use" when calling the Google PaLM API</li>
+  <li>When you see the error message &quot;User location is not supported for the API use&quot; when calling the Google PaLM API</li>
   <li>You want to customize the Google PaLM API</li>
   </ol>
   <p>For technical discussions, please visit <a href="https://simonmy.com/posts/使用netlify反向代理google-palm-api.html">https://simonmy.com/posts/使用netlify反向代理google-palm-api.html</a></p>
 </body>
-</html>`;
+</html>
+    `;
     return new Response(blank_html, {
       headers: {
         ...CORS_HEADERS,
@@ -56,33 +59,29 @@ export default async (request: Request, context: Context) => {
   const url = new URL(pathname, "https://generativelanguage.googleapis.com");
   searchParams.delete("_path");
 
-  // Ensure all search params are correctly appended
   searchParams.forEach((value, key) => {
     url.searchParams.append(key, value);
   });
 
-  const headers = pickHeaders(request.headers, [
-    "content-type", 
-    "x-goog-api-client", 
-    "x-goog-api-key", 
-    "accept-encoding",
-    "authorization", // Might be needed depending on the API
-    // You can add other headers here if necessary
-  ]);
+  const headers = pickHeaders(request.headers, ["content-type", "x-goog-api-client", "x-goog-api-key", "accept-encoding"]);
 
-  // Pass the full body and method to fetch
   const response = await fetch(url, {
     body: request.body,
     method: request.method,
     headers,
   });
 
-  const responseHeaders = {
-    ...CORS_HEADERS,
-    ...Object.fromEntries(response.headers),
-  };
-  // Remove 'content-encoding' from headers, as it's not valid to set it to null
-  // Ensure the response status and body are returned correctly
+  // Create a new Headers object and copy all headers from response
+  const responseHeaders = new Headers(response.headers);
+
+  // Add CORS headers
+  Object.entries(CORS_HEADERS).forEach(([key, value]) => {
+    responseHeaders.set(key, value);
+  });
+
+  // Remove 'content-encoding' header if necessary
+  responseHeaders.delete("content-encoding");
+
   return new Response(response.body, {
     headers: responseHeaders,
     status: response.status
