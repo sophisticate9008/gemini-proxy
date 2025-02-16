@@ -1,0 +1,11 @@
+{
+    "name": "genimi-proxy",
+    "version": "1.0.0",
+    "scripts": {},
+    "dependencies": {
+        "genimi-proxy": "file:"
+    },
+    "devDependencies": {
+        "@netlify/edge-functions": "2.11.1"
+    }
+}
